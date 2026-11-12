@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>みやぎ入札ウォッチ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600&family=Shippori+Mincho:wght@600&display=swap" rel="stylesheet">
+<style>
+/* 設計: 役所の調書を机に広げて読む感じ。藍のインク＋朱の検印。左に寄せた表主体、飾りは最小限 */
+:root{
+  --bg:#f3f4f1; --panel:#ffffff; --ink:#1b2430; --sub:#5d6875; --line:#d9dcd6;
+  --accent:#1d4f7a; --accent-soft:#e3ecf3; --stamp:#b5402c;
+  --ok:#2c6e49; --ok-bg:#e2f0e7; --warn:#8a5a00; --warn-bg:#f7ecd2; --bad:#9b2c2c; --bad-bg:#f6e1df; --mute-bg:#eceeea;
+  --display:"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho",serif;
+  --body:"IBM Plex Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14181d; --panel:#1c2228; --ink:#e6e9ec; --sub:#9aa5b1; --line:#323a43;
+    --accent:#8fbbe0; --accent-soft:#243442; --stamp:#e58a78;
+    --ok:#8fd0a8; --ok-bg:#1f3529; --warn:#e6c377; --warn-bg:#3a3018; --bad:#eda09a; --bad-bg:#3d2322; --mute-bg:#262d34;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14181d; --panel:#1c2228; --ink:#e6e9ec; --sub:#9aa5b1; --line:#323a43;
+  --accent:#8fbbe0; --accent-soft:#243442; --stamp:#e58a78;
+  --ok:#8fd0a8; --ok-bg:#1f3529; --warn:#e6c377; --warn-bg:#3a3018; --bad:#eda09a; --bad-bg:#3d2322; --mute-bg:#262d34;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.6}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 18px;border-bottom:2px solid var(--ink);padding-bottom:10px}
+h1{font-family:var(--display);font-size:26px;margin:0;letter-spacing:.04em}
+.meta{color:var(--sub);font-size:12.5px}
+.demo{color:var(--stamp);border:1.5px solid var(--stamp);border-radius:3px;padding:0 6px;font-size:12px;font-weight:600;transform:rotate(-2deg);display:inline-block}
+nav{display:flex;flex-wrap:wrap;gap:4px;margin:14px 0 16px}
+nav button{font:inherit;font-weight:500;background:none;border:1px solid transparent;border-bottom:2px solid transparent;color:var(--sub);padding:6px 14px;cursor:pointer;border-radius:4px 4px 0 0}
+nav button:hover{color:var(--ink);background:var(--mute-bg)}
+nav button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent);background:var(--panel)}
+nav .cnt{font-size:11.5px;background:var(--stamp);color:#fff;border-radius:9px;padding:0 6px;margin-left:5px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+section{display:none} section.on{display:block}
+h2{font-family:var(--display);font-size:18px;margin:22px 0 8px}
+h2:first-child{margin-top:0}
+.note{color:var(--sub);font-size:12.5px;margin:4px 0 10px;max-width:70ch}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.tablebox{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{font-weight:600;color:var(--sub);font-size:12px;white-space:nowrap;background:var(--mute-bg);position:sticky;top:0}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.d{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--sub)}
+tr.row{cursor:pointer} tr.row:hover td{background:var(--accent-soft)}
+tr.detail td{background:var(--bg);padding:10px 14px 14px}
+tr.detail table{background:var(--panel);border:1px solid var(--line)}
+.ttl{font-weight:500;min-width:220px}
+.small{font-size:12px;color:var(--sub)}
+.pill{display:inline-block;border-radius:10px;padding:0 8px;font-size:11.5px;font-weight:600;white-space:nowrap;background:var(--mute-bg);color:var(--sub)}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.bad{background:var(--bad-bg);color:var(--bad)}
+.new{color:var(--stamp);font-weight:600;font-size:11.5px;border:1px solid var(--stamp);border-radius:3px;padding:0 4px;margin-right:6px;white-space:nowrap}
+.filters{display:flex;flex-wrap:wrap;gap:8px;padding:10px;align-items:center}
+.filters input[type=search]{flex:1 1 240px}
+input,select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:6px 8px}
+.stats{display:flex;flex-wrap:wrap;gap:6px 22px;padding:8px 12px;border-top:1px solid var(--line);font-size:12.5px;color:var(--sub)}
+.stats b{color:var(--ink);font-variant-numeric:tabular-nums;font-size:14px}
+.btn{font:inherit;border:1px solid var(--accent);color:var(--accent);background:var(--panel);border-radius:4px;padding:5px 12px;cursor:pointer}
+.btn:hover{background:var(--accent-soft)}
+.chip{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:14px;padding:2px 12px;cursor:pointer}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+a{color:var(--accent)}
+ul.plain{list-style:none;margin:0;padding:0} ul.plain li{padding:8px 12px;border-bottom:1px solid var(--line)} ul.plain li:last-child{border-bottom:0}
+.empty{padding:16px;color:var(--sub)}
+.bar{display:inline-block;height:6px;background:var(--accent);border-radius:3px;vertical-align:middle;margin-right:6px;opacity:.75}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px} @media(max-width:800px){.two{grid-template-columns:1fr}}
+.cohead{display:flex;flex-wrap:wrap;gap:6px 20px;align-items:baseline;padding:12px 14px;border-bottom:1px solid var(--line)}
+.cohead strong{font-family:var(--display);font-size:18px}
+.srcsw{display:flex;gap:0;border:1.5px solid var(--ink);border-radius:5px;overflow:hidden}
+.srcsw button{font:inherit;font-weight:600;border:0;border-right:1.5px solid var(--ink);background:var(--panel);color:var(--ink);padding:5px 16px;cursor:pointer}
+.srcsw button:last-child{border-right:0}
+.srcsw button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.srcsw button small{font-weight:400;opacity:.75;margin-left:4px;font-variant-numeric:tabular-nums}
+.upd{color:var(--accent);font-weight:600;font-size:11.5px;border:1px solid var(--accent);border-radius:3px;padding:0 4px;margin-right:6px;white-space:nowrap}
+.srcchip{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:3px;padding:0 5px;margin-right:6px;color:var(--sub);white-space:nowrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg button{font:inherit;font-size:12.5px;border:0;background:var(--panel);color:var(--sub);padding:5px 10px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+footer{margin-top:28px;padding-top:12px;border-top:1px solid var(--line);color:var(--sub);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>みやぎ入札ウォッチ</h1><span class="demo">デモ版</span>
+  <div class="srcsw" id="srcsw" role="group" aria-label="自治体の切り替え"></div>
+  <span class="meta" id="meta"></span>
+</header>
+<nav role="tablist" id="nav"></nav>
+
+<section id="shinchaku"></section>
+<section id="anken">
+  <div class="panel">
+    <div class="filters">
+      <input type="search" id="q" placeholder="件名・業者名・場所・発注課で検索（空白区切りで絞り込み）" aria-label="キーワード">
+      <select id="fy" aria-label="年度"></select>
+      <select id="st" aria-label="結果"></select>
+      <select id="mt" aria-label="方式"></select>
+      <select id="one" aria-label="応札者数"><option value="">応札者数: すべて</option><option value="1">1者だけ</option><option value="2">2者以上</option></select>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="tablebox"><table id="tbl"></table></div>
+    <div class="empty" id="more"></div>
+  </div>
+</section>
+<section id="gyosha">
+  <div class="panel"><div class="filters">
+    <input type="search" id="cq" placeholder="業者名で検索（例: 古川土地）" aria-label="業者名">
+    <span class="seg" id="scope" role="group" aria-label="集計範囲"></span>
+    <span class="small">見張りリスト:</span><span id="watch"></span>
+  </div></div>
+  <div id="codetail"></div>
+  <h2 id="rankh"></h2>
+  <div class="panel tablebox"><table id="rank"></table></div>
+</section>
+<section id="kokoku"></section>
+<section id="shikumi"></section>
+<footer id="foot"></footer>
+</div>
+
+<script type="application/json" id="head">__HEAD__</script>
+__BLOBS__
+<script>
+const H = JSON.parse(document.getElementById('head').textContent);
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const yen = n => n == null ? '—' : Math.round(Number(n) * 100) / 100 === Math.round(n) ? Math.round(n).toLocaleString('ja-JP') : Number(n).toLocaleString('ja-JP');
+const key = s => String(s || '').normalize('NFKC').replace(/\s+/g, '').replace(/株式会社/g, '(株)').replace(/有限会社/g, '(有)');
+const SRC = {}, BYID = new Map();
+H.sources.forEach(m => {
+  const b = JSON.parse(document.getElementById('blob-' + m.src).textContent);
+  b.tenders.forEach(t => { t.src = m.src; t._k = key([t.title, t.place, t.cat, t.no, t.org, t.winner, ...t.bids.map(x => x.c)].join(' ')); BYID.set(t.id, t); });
+  SRC[m.src] = Object.assign(b, m);
+});
+const ORDER = H.sources.map(m => m.src);
+let cur = ORDER[0], tab = 'shinchaku', limit = 200, scope = 'all';
+const TABS = [['shinchaku','新着'],['anken','案件一覧'],['gyosha','業者で見る'],['kokoku','公告・出典'],['shikumi','しくみ']];
+
+function pill(s){
+  const cls = s === '落札' ? 'ok' : /不調|中止|取止め|失格|不適当|無効|不落/.test(s) ? 'bad' : /超過|辞退|候補|選定中|保留/.test(s) ? 'warn' : '';
+  return s ? `<span class="pill ${cls}">${esc(s)}</span>` : '';
+}
+const tag = t => (t.isNew ? '<span class="new">新着</span>' : '') + (t.upd ? `<span class="upd">${esc(t.upd)} → ${esc(t.status)}</span>` : '');
+const short = m => String(m || '').replace('一般競争入札', '一般').replace('（事後審査型）', '').replace('（入札後資格確認型）', '').replace('(ダイレクト型)', '');
+
+/* ---------- 切り替え ---------- */
+function route(){
+  const h = location.hash.slice(1), i = h.lastIndexOf('-');
+  const s = h.slice(0, i), t = h.slice(i + 1);
+  if(SRC[s]) cur = s;
+  if(TABS.some(x => x[0] === t)) tab = t;
+  renderAll();
+}
+function go(s, t){ cur = s; tab = t; limit = 200; location.hash = s + '-' + t; renderAll(); }
+addEventListener('hashchange', route);
+$('#srcsw').addEventListener('click', e => { const b = e.target.closest('button'); if(b) go(b.dataset.s, tab); });
+$('#nav').addEventListener('click', e => { const b = e.target.closest('button'); if(b) go(cur, b.dataset.t); });
+
+function renderAll(){
+  const S = SRC[cur], T = S.tenders;
+  $('#srcsw').innerHTML = ORDER.map(s => `<button data-s="${s}" aria-pressed="${s === cur}">${esc(SRC[s].label)}<small>${SRC[s].tenders.length.toLocaleString()}</small></button>`).join('');
+  const nNew = T.filter(t => t.isNew || t.upd).length + S.notices.filter(n => n.isNew).length;
+  $('#nav').innerHTML = TABS.map(([id,l]) => `<button role="tab" data-t="${id}" aria-selected="${id === tab}">${l}${id === 'shinchaku' && nNew ? `<span class="cnt">${nNew}</span>` : ''}</button>`).join('');
+  document.querySelectorAll('section').forEach(x => x.classList.toggle('on', x.id === tab));
+  const dates = T.map(t => t.date).filter(Boolean).sort();
+  $('#meta').textContent = `${S.scope} ／ ${dates[0] || '—'}〜${dates[dates.length-1] || '—'} ／ 最終確認 ${H.generated}`;
+  renderNew(); setupFilters(); renderList(); renderCo(); renderSrc(); renderHow();
+}
+
+/* ---------- 案件テーブル ---------- */
+function bidTable(t){
+  const rows = t.bids.map(b => `<tr><td>${esc(b.c)}${b.br ? ` <span class="small">${esc(b.br)}</span>` : ''}</td>
+    <td class="n">${b.a.length ? b.a.map(yen).join(' → ') : '—'}</td><td>${pill(b.r)}</td><td class="small">${esc(b.m)}</td></tr>`).join('');
+  const S = SRC[t.src];
+  const link = /\.pdf$/i.test(t.doc || '') ? `<a href="${esc(t.doc)}" target="_blank" rel="noopener">原本PDFを開く</a>`
+    : `<a href="${esc(S.portal)}" target="_blank" rel="noopener">${esc(S.label)}の公開システムで確認</a>（番号で検索）`;
+  return `<div class="small" style="margin-bottom:6px">番号 ${esc(t.no || '—')} ／ ${esc(t.method)}${t.cat ? ' ／ ' + esc(t.cat) : ''}${t.place ? ' ／ ' + esc(t.place) : ''}${t.org ? ' ／ 発注 ' + esc(t.org) : ''}
+     ／ ${esc(t.yl || '予定価格')} ${yen(t.yotei)}${t.yotei != null ? '円' : ''}${t.floor ? ` ／ ${esc(t.floorLabel)} ${yen(t.floor)}円` : ''}
+     ／ ${link}${t.warn ? ` ／ <b style="color:var(--stamp)">要確認: ${esc(t.warn)}</b>` : ''}</div>
+     ${t.bids.length ? `<table><tr><th>入札者</th><th class="n">入札額（円・回ごと）</th><th>結果</th><th>備考</th></tr>${rows}</table>` : '<div class="small">入札者の記載なし</div>'}`;
+}
+function tenderRows(list, withSrc){
+  return list.map(t => `<tr class="row" data-id="${t.id}" tabindex="0">
+    <td class="d">${t.date || '—'}</td>
+    <td class="ttl">${withSrc ? `<span class="srcchip">${esc(SRC[t.src].label)}</span>` : ''}${tag(t)}${esc(t.title)}<div class="small">${esc([t.cat, short(t.method), t.org].filter(Boolean).join('・'))}</div></td>
+    <td class="n">${yen(t.yotei)}${t.yotei != null && t.yl && t.yl !== '予定価格' ? `<div class="small">${esc(t.yl)}</div>` : ''}</td>
+    <td>${t.status === '落札' ? esc(t.winner) + (t.lottery ? ' <span class="pill warn">くじ</span>' : '') : pill(t.status)}</td>
+    <td class="n">${yen(t.win)}</td>
+    <td class="n">${t.rate != null ? t.rate.toFixed(1) + '%' : '—'}</td>
+    <td class="n">${t.n}</td></tr>`).join('');
+}
+const THEAD = '<tr><th>入札日</th><th>件名</th><th class="n">予定価格等</th><th>落札者／結果</th><th class="n">落札額</th><th class="n">落札率</th><th class="n">応札</th></tr>';
+document.addEventListener('click', e => {
+  const r = e.target.closest('tr.row'); if(!r || e.target.closest('a')) return;
+  const nx = r.nextElementSibling;
+  if(nx && nx.classList.contains('detail')){ nx.remove(); return; }
+  r.insertAdjacentHTML('afterend', `<tr class="detail"><td colspan="${r.children.length}">${bidTable(BYID.get(+r.dataset.id))}</td></tr>`);
+});
+document.addEventListener('keydown', e => { if(e.key === 'Enter' && e.target.matches('tr.row, tr.corow')) e.target.click(); });
+
+let filtersFor = null;
+function setupFilters(){
+  if(filtersFor === cur) return; filtersFor = cur;
+  const T = SRC[cur].tenders;
+  const fys = [...new Set(T.map(t => t.fy).filter(Boolean))].sort().reverse();
+  $('#fy').innerHTML = '<option value="">年度: すべて</option>' + fys.map(y => `<option value="${y}">令和${y-2018}年度</option>`).join('');
+  $('#st').innerHTML = '<option value="">結果: すべて</option>' + [...new Set(T.map(t => t.status))].sort().map(s => `<option>${esc(s)}</option>`).join('');
+  const ms = {}; T.forEach(t => ms[t.method] = (ms[t.method] || 0) + 1);
+  $('#mt').innerHTML = '<option value="">方式: すべて</option>' + Object.keys(ms).sort((a,b) => ms[b] - ms[a]).map(m => `<option value="${esc(m)}">${esc(m)}（${ms[m]}）</option>`).join('');
+  $('#q').value = ''; $('#one').value = '';
+}
+function renderList(){
+  const T = SRC[cur].tenders;
+  const words = key($('#q').value.replace(/[\s　]+/g, '\u0001')).split('\u0001').filter(Boolean);
+  const fy = $('#fy').value, st = $('#st').value, mt = $('#mt').value, one = $('#one').value;
+  const L = T.filter(t => (!fy || t.fy == fy) && (!st || t.status === st) && (!mt || t.method === mt)
+    && (!one || (one === '1' ? t.n === 1 : t.n >= 2)) && words.every(w => t._k.includes(w)));
+  const won = L.filter(t => t.status === '落札'), comp = won.filter(t => !t.method.includes('随意')), rated = comp.filter(t => t.rate != null);
+  const avg = rated.length ? (rated.reduce((s,t) => s + t.rate, 0) / rated.length).toFixed(1) + '%' : '—';
+  const single = comp.filter(t => t.n === 1).length;
+  const yl = (L.find(t => t.yotei != null) || {}).yl || '予定価格';
+  $('#stats').innerHTML = `<span>該当 <b>${L.length.toLocaleString()}</b> 件</span><span>落札 <b>${won.length.toLocaleString()}</b> 件</span>
+    <span>落札額合計 <b>${yen(Math.round(won.reduce((s,t) => s + (t.win||0), 0) / 1e4))}</b> 万円</span>
+    <span>競争入札の平均落札率 <b>${avg}</b>${yl !== '予定価格' ? `（対${esc(yl)}）` : ''}${rated.length < comp.length ? `<span class="small">（算出できた${rated.length}/${comp.length}件）</span>` : ''}</span>
+    <span>競争入札のうち1者応札 <b>${comp.length ? Math.round(single / comp.length * 100) : 0}%</b>（${single}/${comp.length}件）</span>
+    <span>落札に至らず <b>${L.filter(t => /不調|中止|取止め|不落/.test(t.status)).length}</b> 件</span>`;
+  $('#tbl').innerHTML = THEAD + tenderRows(L.slice(0, limit));
+  $('#more').innerHTML = L.length > limit ? `${limit}件まで表示中。<button class="btn" id="moreb">さらに${Math.min(300, L.length - limit)}件表示</button>` : (L.length ? '' : '該当する案件がありません。検索語を減らすか、絞り込みを外してください。');
+  $('#more').style.display = $('#more').innerHTML ? '' : 'none';
+}
+['q','fy','st','mt','one'].forEach(id => $('#' + id).addEventListener('input', () => { limit = 200; renderList(); }));
+$('#more').addEventListener('click', e => { if(e.target.id === 'moreb'){ limit += 300; renderList(); } });
+
+/* ---------- 新着 ---------- */
+function renderNew(){
+  const S = SRC[cur], T = S.tenders;
+  const newT = T.filter(t => t.isNew), updT = T.filter(t => t.upd), newN = S.notices.filter(n => n.isNew), newD = S.docs.filter(d => d.isNew);
+  const prev = S.runs[S.runs.length - 2], hits = [];
+  H.watch.forEach(w => { const k = key(w); newT.concat(updT).forEach(t => t.bids.forEach(b => { if(key(b.c).includes(k)) hits.push({t,b}); })); });
+  let h = `<p class="note">${esc(S.label)}について、前回（${prev ? esc(prev.at.replace('T',' ')) : '—'}）の確認以降に増えたもの・変わったものです。
+    このデモでは差分検知を見せるため、初回は2026年10月6日までの分だけを取り込み、2回目で10月7日以降を検知させています。</p>`;
+  if(S.runs.length < 2) h += '<div class="panel empty">まだ1回しか確認していないため、差分はありません。</div>';
+  if(S.notices.length){
+    h += `<h2>新しい入札公告 ${newN.length}件</h2><div class="panel"><ul class="plain">` +
+      (newN.map(n => `<li><span class="new">新着</span><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a></li>`).join('') || '<li class="small">なし</li>') + '</ul></div>';
+  }
+  h += `<h2>新しい入札結果 ${newT.length}件</h2>` + newD.map(d => `<p class="note"><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label)}（原本PDF）</a></p>`).join('');
+  h += newT.length ? `<div class="panel tablebox"><table>${THEAD}${tenderRows(newT.slice(0, 300))}</table></div>${newT.length > 300 ? '<p class="note">300件まで表示。残りは案件一覧にあります。</p>' : ''}` : '<div class="panel empty">なし</div>';
+  if(updT.length) h += `<h2>状態が変わった案件 ${updT.length}件</h2><div class="panel tablebox"><table>${THEAD}${tenderRows(updT)}</table></div>`;
+  h += `<h2>見張りリストの該当 ${hits.length}件</h2><div class="panel">` + (hits.length
+    ? '<ul class="plain">' + hits.map(x => `<li><b>${esc(x.b.c)}</b> ${x.t.date} ${esc(x.t.title)} ${yen(x.b.a[x.b.a.length-1])}円 ${pill(x.b.r)}</li>`).join('') + '</ul>'
+    : `<div class="empty">今回の新着に ${H.watch.map(esc).join('、')} は出ていません。過去の履歴は「業者で見る」にあります。</div>`) + '</div>';
+  $('#shinchaku').innerHTML = h;
+}
+
+/* ---------- 業者（3自治体を横断） ---------- */
+const CO = new Map();
+ORDER.forEach(s => SRC[s].tenders.forEach(t => t.bids.forEach(b => {
+  const k = key(b.c); let c = CO.get(k);
+  if(!c) CO.set(k, c = {k, name:b.c, rows:[], by:{}});
+  const y = c.by[s] ||= {b:0, w:0, amt:0};
+  y.b++; if(b.r === '落札' && t.status === '落札'){ y.w++; y.amt += t.win || 0; }
+  c.rows.push({t, b});
+})));
+const COS = [...CO.values()];
+const tot = (c, f) => (scope === 'all' ? ORDER : [cur]).reduce((s, x) => s + ((c.by[x] || {})[f] || 0), 0);
+let coOpen = null;
+function renderCo(){
+  $('#scope').innerHTML = [['all','全自治体をまとめて'],['one', SRC[cur].label + 'だけ']].map(([v,l]) => `<button data-v="${v}" aria-pressed="${scope === v}">${esc(l)}</button>`).join('');
+  const q = key($('#cq').value);
+  const L = COS.filter(c => (!q || c.k.includes(q)) && tot(c, 'b') > 0).sort((a,b) => tot(b,'amt') - tot(a,'amt') || tot(b,'b') - tot(a,'b'));
+  const max = Math.max(1, ...L.slice(0, 60).map(c => tot(c,'amt')));
+  const cols = scope === 'all' ? ORDER : [cur];
+  $('#rankh').textContent = q ? `「${$('#cq').value}」に一致する業者 ${L.length.toLocaleString()}社` : `落札額の多い順（全${L.length.toLocaleString()}社のうち上位60社）`;
+  $('#rank').innerHTML = `<tr><th>業者</th>${cols.map(s => `<th class="n">${esc(SRC[s].label)}<br>落札/応札</th>`).join('')}<th class="n">落札額合計（円）</th></tr>` +
+    L.slice(0, 60).map(c => `<tr class="corow" data-k="${esc(c.k)}" style="cursor:pointer" tabindex="0"><td>${esc(c.name)}</td>
+      ${cols.map(s => `<td class="n">${c.by[s] ? c.by[s].w + '/' + c.by[s].b : '<span class="small">—</span>'}</td>`).join('')}
+      <td class="n"><span class="bar" style="width:${Math.round(tot(c,'amt') / max * 90)}px"></span>${yen(tot(c,'amt'))}</td></tr>`).join('');
+  if(q && L.length >= 1 && L.length <= 3) coDetail(L[0].k); else if(coOpen && CO.get(coOpen) && (!q || coOpen.includes(q))) coDetail(coOpen); else { coOpen = null; $('#codetail').innerHTML = ''; }
+}
+function coDetail(k){
+  const c = CO.get(k); if(!c) return; coOpen = k;
+  const rows = c.rows.filter(r => scope === 'all' || r.t.src === cur).sort((a,b) => (a.t.date || '') < (b.t.date || '') ? 1 : -1);
+  const sum = (scope === 'all' ? ORDER : [cur]).filter(s => c.by[s]).map(s => `${esc(SRC[s].label)} 落札${c.by[s].w}/応札${c.by[s].b}`).join(' ／ ');
+  $('#codetail').innerHTML = `<h2>業者の入札履歴</h2><div class="panel"><div class="cohead"><strong>${esc(c.name)}</strong>
+    <span>応札 <b>${tot(c,'b')}</b> 件</span><span>落札 <b>${tot(c,'w')}</b> 件</span><span>落札額合計 <b>${yen(tot(c,'amt'))}</b> 円</span><span class="small">${sum}</span></div>
+    <div class="tablebox"><table><tr><th>入札日</th><th>件名</th><th class="n">予定価格等</th><th class="n">この業者の入札額</th><th>この業者の結果</th><th>落札者</th><th class="n">落札額</th></tr>` +
+    rows.slice(0, 400).map(({t,b}) => `<tr class="row" data-id="${t.id}" tabindex="0"><td class="d">${t.date || '—'}</td><td class="ttl"><span class="srcchip">${esc(SRC[t.src].label)}</span>${tag(t)}${esc(t.title)}</td><td class="n">${yen(t.yotei)}</td>
+      <td class="n">${b.a.length ? yen(b.a[b.a.length-1]) : '—'}</td><td>${pill(b.r) || `<span class="small">${t.status === '落札' ? '落札できず' : '未確定'}</span>`}</td>
+      <td>${t.status === '落札' ? esc(t.winner) : pill(t.status)}</td><td class="n">${yen(t.win)}</td></tr>`).join('') + '</table></div></div>';
+}
+$('#cq').addEventListener('input', renderCo);
+$('#scope').addEventListener('click', e => { const b = e.target.closest('button'); if(b){ scope = b.dataset.v; renderCo(); } });
+$('#rank').addEventListener('click', e => { const r = e.target.closest('.corow'); if(r){ coDetail(r.dataset.k); $('#codetail').scrollIntoView({behavior:'smooth',block:'start'}); } });
+$('#watch').innerHTML = H.watch.map(w => `<button class="chip" data-w="${esc(w)}">${esc(w)}</button>`).join(' ');
+$('#watch').addEventListener('click', e => { const b = e.target.closest('.chip'); if(b){ $('#cq').value = b.dataset.w; renderCo(); } });
+
+/* ---------- 公告・出典 ---------- */
+function renderSrc(){
+  const S = SRC[cur];
+  let h = `<h2>出典</h2><div class="panel" style="padding:12px 16px;max-width:78ch"><p><b>${esc(S.label)}</b>：${esc(S.scope)}<br>
+    <a href="${esc(S.portal)}" target="_blank" rel="noopener">${esc(S.portal)}</a></p>${S.note ? `<p class="small">${esc(S.note)}</p>` : ''}</div>`;
+  if(S.notices.length || S.docs.length){
+    h += `<div class="two"><div><h2>掲載中の入札公告 ${S.notices.filter(n => !n.gone).length}件</h2><div class="panel"><ul class="plain">` +
+      (S.notices.map(n => `<li>${n.isNew ? '<span class="new">新着</span>' : ''}<a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a>${n.gone ? ' <span class="pill">掲載終了</span>' : ''}</li>`).join('') || '<li class="small">なし</li>') +
+      `</ul></div><p class="note">公告はページ単位で見張っています。個別案件の中身まで読むのは次の段階です。</p></div>
+      <div><h2>取り込んだPDF ${S.docs.length}本</h2><div class="panel" style="max-height:520px;overflow:auto"><ul class="plain">` +
+      S.docs.map(d => `<li>${d.isNew ? '<span class="new">新着</span>' : ''}<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label)}</a> <span class="small">${d.n ? d.n + '件' : 'お知らせのみ'}</span></li>`).join('') + '</ul></div></div></div>';
+  } else {
+    h += `<p class="note">${esc(S.label)}は検索システムから直接取り込んでいるため、原本PDFの一覧はありません。個別の案件は上のシステムで番号検索すると確認できます。公告の見張りは未対応です。</p>`;
+  }
+  $('#kokoku').innerHTML = h;
+}
+
+/* ---------- しくみ ---------- */
+function renderHow(){
+  const rows = ORDER.map(s => { const S = SRC[s], T = S.tenders, w = T.filter(t => t.warn).length, d = T.map(t => t.date).filter(Boolean).sort();
+    return `<tr><td><b>${esc(S.label)}</b></td><td>${esc(S.scope)}</td><td class="d">${d[0] || '—'}〜${d[d.length-1] || '—'}</td><td class="n">${T.length.toLocaleString()}</td><td class="n">${T.reduce((n,t) => n + t.bids.length, 0).toLocaleString()}</td><td class="n">${w}</td></tr>`; }).join('');
+  $('#shikumi').innerHTML = `<h2>何をしているか</h2><div class="panel" style="padding:14px 18px;max-width:80ch">
+  <p>1. 各自治体が公開している入札結果を定期的に読みに行き、前回の記録にない案件、状態が変わった案件（選定中→落札など）、差し替えられた原本を探します。</p>
+  <p>2. 案件ごとに「案件」と「入札者」に分けてデータベース（SQLite）に入れます。自治体ごとに公開の形が違うので、読み取り部分だけ自治体別に書いてあります。</p>
+  <p>3. 前回との差分と、見張りリスト（${H.watch.map(esc).join('、')}）の該当をレポートにします。業者名は表記ゆれ（全角半角・空白・株式会社と(株)）をそろえて、自治体をまたいで集計します。</p></div>
+  <h2>収録範囲</h2><div class="panel tablebox"><table><tr><th>自治体</th><th>対象</th><th>期間（入札日）</th><th class="n">案件</th><th class="n">入札</th><th class="n">要確認</th></tr>${rows}</table></div>
+  <h2>数字を使うときの注意</h2><div class="panel" style="padding:14px 18px;max-width:80ch">
+  <p>機械読み取りです。記事や質問に使う数字は、行を開いて原本（PDFまたは各自治体の公開システム）で確かめてください。</p>
+  <p>「落札率」は 落札額 ÷ 予定価格等 です。大崎市と宮城県は予定価格、仙台市は予定価格が画面に出ないため設計額に対する比率で、そのまま横並びにはできません。宮城県は予定価格が載っていない案件があり、その分は算出していません。金額はいずれも税抜の表示です。</p>
+  <p>大崎市の「予定価格超過」は入札額が予定価格を上回ったもの、「落札不適当」は総合評価の評価調書で評価対象外とされたもので、調書の数値から判定しています。結果欄が空で落札もしていない入札は、案件が落札済みなら「落札できず」、選定中や不調なら「未確定」と表示しています。</p>
+  <p>同じ名前の別会社を1社として数えてしまう可能性、支店名の有無で別会社に分かれる可能性があります。</p></div>
+  <h2>まだ入っていないもの</h2><div class="panel" style="padding:14px 18px;max-width:80ch">
+  <p>大崎市の他部署（上下水道部・教育委員会・市民病院など）と令和5年度以前。仙台市のコンサル・物品役務と令和7年度以前。宮城県の建設関連業務・物品役務と令和6年度以前、入札調書PDFの中身。仙台市・宮城県の公告。メールなどへの自動通知。</p></div>`;
+  $('#foot').innerHTML = `出典：大崎市・仙台市・宮城県が公開している入札結果情報を加工して作成。${H.repo ? ` ソースコード：<a href="${esc(H.repo)}" target="_blank" rel="noopener">${esc(H.repo)}</a>（MITライセンス。複製・改変・再配布は自由です）。` : ''} 作成：みちのくブロードリスニング`;
+}
+route();
+</script>
+</body>
+</html>

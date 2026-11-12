@@ -1,0 +1,5 @@
+# 取得した原本（再取得できるので置かない）
+data/raw/
+data/pdf/
+__pycache__/
+*.pyc

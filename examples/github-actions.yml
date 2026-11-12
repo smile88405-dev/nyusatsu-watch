@@ -1,0 +1,24 @@
+# 定期実行の例。使うときは .github/workflows/watch.yml にコピーする。
+# 取得したデータと閲覧画面(docs/)をコミットするので、GitHub Pages を docs/ に向ければ公開ページも自動更新される。
+name: nyusatsu-watch
+on:
+  schedule:
+    - cron: "17 22 * * 1,4"   # 火・金の朝7:17 (JST)
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - run: python -m nyusatsu_watch run
+      - run: |
+          git config user.name "nyusatsu-watch"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/nyusatsu.sqlite out docs
+          git diff --cached --quiet || git commit -m "data: $(date -u +%F) 定期取得"
+          git push
