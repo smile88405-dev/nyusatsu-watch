@@ -2,7 +2,7 @@
 """行儀のよいHTTPクライアント: 間隔をあけ、身元を名乗り、Cookieを保持する"""
 import http.cookiejar, time, urllib.parse, urllib.request
 
-UA = "nyusatsu-watch/0.2 (civic research; polite crawler, about 1 request/sec)"
+UA = "nyusatsu-watch/0.2 (+https://github.com/smile88405-dev/nyusatsu-watch; civic research; about 1 request/sec)"
 WAIT = 1.0
 
 

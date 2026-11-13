@@ -9,7 +9,7 @@ DOCS = os.environ.get("NW_DOCS") or os.path.join(ROOT, "docs")
 DB = os.path.join(DATA, "nyusatsu.sqlite")
 RAW = os.environ.get("NW_RAW") or os.path.join(DATA, "raw")   # 取得した詳細HTMLの置き場
 WATCH = os.path.join(ROOT, "watchlist.txt")
-REPO_URL = ""   # 公開先のURL（閲覧画面のフッターに出る）
+REPO_URL = "https://github.com/smile88405-dev/nyusatsu-watch"   # 公開先（閲覧画面のフッターに出る）
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs(id INTEGER PRIMARY KEY, started TEXT, note TEXT, srcs TEXT);
