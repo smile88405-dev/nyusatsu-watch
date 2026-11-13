@@ -9,7 +9,7 @@ from ..http import Session
 from .. import core
 
 NAME, LABEL = "sendai", "仙台市"
-SCOPE = "入札情報公開システムの「工事」入札・見積結果（令和8年度）"
+SCOPE = "入札情報公開システムの「工事」入札・見積結果（令和7〜8年度）"
 PORTAL = "https://www.epi-cloud.fwd.ne.jp/koukai/do/logon?name1=0620060006800640"
 B = "https://www.epi-cloud.fwd.ne.jp/koukai/do/"
 STARS = re.compile(r"^\*+$")
